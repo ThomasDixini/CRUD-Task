@@ -1,20 +1,33 @@
 import express from 'express';
-import mysql from 'mysql'
+import mysql from 'mysql2/promise'
 import { randomUUID } from 'crypto'
+import { Console } from 'console';
 
 const app = express();
 app.use(express.json());
 
 const connection = mysql.createConnection({
     host: 'localhost',
-    user: 'test',
-    password: '147258369',
+    user: 'root',
+    password: '1234',
     database: 'my_db'
 })
 
-connection.connect();
+export class Database {
+    insert(task) {
+        connection.then(conn => {
+            conn.connect()
+            const sql = 'INSERT INTO task(id, title, description, created_at, updated_at) VALUES(?, ?, ?, ?, ?);'
+            const values = [task.id, task.title, task.description, task.created_at, task.updated_at]
+            conn.query(sql, values)
+            return
+        });
+    }
+}
+console.log(new Date())
 
-app.post('/tasks', (req, res) => {
+
+app.post('/tasks', async (req, res) => {
 
     const { title, description } = req.body;
 
@@ -22,16 +35,13 @@ app.post('/tasks', (req, res) => {
         id: randomUUID(),
         title,
         description,
-        created_at: new Date().getHours() + ":" + new Date().getMinutes(),
-        updated_at: new Date().getHours() + ":" + new Date().getMinutes(),
+        created_at: new Date(),
+        updated_at: new Date(),
     }
-    
-    connection.query({
-        sql: `
-        INSERT INTO task(id, title, description, created_at, updated_at)
-        VALUES (${task.id}, ${title}, ${description}, ${task.created_at}, ${task.updated_at})
-        `
-    })
+
+    const db = new Database
+
+    await db.insert(task)
 
     return res.writeHead(201).end("Task created successfully");
 })
